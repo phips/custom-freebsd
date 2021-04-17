@@ -1,9 +1,8 @@
-PARTITIONS=vtbd0
-DISTRIBUTIONS="kernel.txz base.txz joyent.txz"
-BSDINSTALL_DISTSITE=ftp://ftp.freebsd.org/pub/FreeBSD/releases/amd64/10.3-RELEASE
+PARTITIONS=ada0
+DISTRIBUTIONS="kernel.txz base.txz"
+BSDINSTALL_DISTSITE=ftp://ftp.uk.freebsd.org/pub/FreeBSD/releases/amd64/13.0-RELEASE
 
 #!/bin/sh
-
 set -o xtrace
 echo "==> Running installerconfig"
 
@@ -25,13 +24,10 @@ BOOT
 echo "==> Setting up rc.conf"
 cat > /etc/rc.conf << RC_CONF
 fsck_y_enable="YES"
-
-# Enable SmartDataCenter support. Do not remove.
-smartdc_enable="YES"
-
 sshd_enable="YES"
 ntpd_enable="YES"
 ntpd_sync_on_start="YES"
+ifconfig_em0=DHCP
 
 RC_CONF
 
@@ -72,43 +68,27 @@ env PAGER=cat freebsd-update -f /tmp/freebsd-update.conf fetch
 env PAGER=cat freebsd-update -f /tmp/freebsd-update.conf install
 
 echo "==> Installing packages"
-env ASSUME_ALWAYS_YES=YES pkg update -f
-env ASSUME_ALWAYS_YES=YES pkg upgrade -q -y
-env ASSUME_ALWAYS_YES=YES pkg install -q -y bash curl node npm vim-lite wget
-env ASSUME_ALWAYS_YES=YES pkg autoremove
-env ASSUME_ALWAYS_YES=YES pkg clean -a
+env ASSUME_ALWAYS_YES=yes pkg update -f
+env ASSUME_ALWAYS_YES=yes pkg upgrade -q -y
+env ASSUME_ALWAYS_YES=yes pkg install -q -y curl vim-console zsh
+env ASSUME_ALWAYS_YES=yes pkg autoremove
+env ASSUME_ALWAYS_YES=yes pkg clean -a
 
 echo "== Enable root login via ssh"
 sed -i.bak -e s/#PermitRootLogin\ no/PermitRootLogin\ without-password/g /etc/ssh/sshd_config
 
 ## Build date used for motd and product file
 BUILDDATE=$(date +%Y%m%d)
-RELEASE="10.3-RELEASE"
+RELEASE="13.0-RELEASE"
 DOC_URL="https://docs.joyent.com/images/kvm/freebsd"
 
 # Create MOTD
 echo "Creating /etc/motd"
 mv /etc/motd /etc/motd-backup
 cat << MOTD > /etc/motd
-   __        .                   .
- _|  |_      | .-. .  . .-. :--. |-
-|_    _|     ;|   ||  |(.-' |  | |
-  |__|   \`--'  \`-' \`;-| \`-' '  ' \`-'
-                   /  ;  Instance (FreeBSD $RELEASE $BUILDDATE)
-                   \`-'   $DOC_URL
+Probably Custom (FreeBSD $RELEASE $BUILDDATE)
 
 MOTD
-
-# Create product file
-echo "Creating /etc/product file"
-cat << PRODUCT > /etc/product
-Name: Joyent Instance
-Image: FreeBSD $RELEASE $BUILDDATE
-Documentation: $DOC_URL
-Description: FreeBSD $RELEASE 64-bit image with just essential packages \
-installed. Ideal for users who are comfortable with setting up their \
-own environment and tools.
-PRODUCT
 
 echo "Cleaning up"
 rm -rf /tmp/installscript
@@ -118,5 +98,5 @@ rm -rf /boot/kernel/*.symbols
 
 echo "End of installerconfig"
 
-# Shutdown/Poweroff
-poweroff
+# reboot
+reboot

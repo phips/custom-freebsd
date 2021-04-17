@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 if [[ -n "$TRACE" ]]; then
   export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
@@ -8,16 +8,15 @@ fi
 set -euo pipefail
 IFS=$'\n\t'
 
-RELEASE="10.3"
-MIRROR="ftp.freebsd.org"
+RELEASE="13.0"
+MIRROR="ftp.uk.freebsd.org"
 MIRROR_PATH="pub/FreeBSD/releases/ISO-IMAGES"
 ISO="FreeBSD-${RELEASE}-RELEASE-amd64-disc1.iso"
-ISO_DIR="/data/freebsd-iso"
+ISO_DIR="data/freebsd-iso"
 ISO_MOUNT="/mnt/freebsd-iso"
-CUSTOM_ISO_LAYOUT="/data/custom-freebsd-iso"
+CUSTOM_ISO_LAYOUT="data/custom-freebsd-iso"
 SHA256SUM="CHECKSUM.SHA256-FreeBSD-${RELEASE}-RELEASE-amd64"
-CUSTOM_ISO_FILENAME="freebsd-10-custom.iso"
-ME_FREEBSD_DIST_NAME="joyent.txz"
+CUSTOM_ISO_FILENAME="freebsd-custom.iso"
 INSTALLER_CFG="installerconfig"
 
 # Clean up ISO file if download is interupted
@@ -31,7 +30,7 @@ function fetch_iso() {
   fi
 
   echo "==> Fetching ${SHA256SUM}"
-  curl -sS -o ${ISO_DIR}/${SHA256SUM} ftp://${MIRROR}/${MIRROR_PATH}/${RELEASE}/${SHA256SUM}
+  curl -#S -o ${ISO_DIR}/${SHA256SUM} ftp://${MIRROR}/${MIRROR_PATH}/${RELEASE}/${SHA256SUM}
 
   echo "==> Checking for local copy of $ISO..."
   if [[ -e $ISO_DIR/$ISO ]]; then
@@ -80,19 +79,6 @@ function create_layout() {
   echo "==> Copying layout from $ISO_MOUNT to $CUSTOM_ISO_LAYOUT"
   rsync -aq  $ISO_MOUNT/ $CUSTOM_ISO_LAYOUT
 
-  echo "==> Copying guest tools to $CUSTOM_ISO_LAYOUT:"
-  if [[ ! -d me-freebsd ]]; then
-    echo "===> Getting me-freebsd..."
-    git clone https://github.com/joyent/me-freebsd.git
-  else
-    echo "===> Updating me-freebsd before copying to $CUSTOM_ISO_LAYOUT..."
-    ( cd me-freebsd
-      git pull
-    )
-  fi
-
-  integrate_me_freebsd_dstribution
-
   echo "==> Copying $INSTALLER_CFG to $CUSTOM_ISO_LAYOUT"
   cp $INSTALLER_CFG $CUSTOM_ISO_LAYOUT/etc/
 
@@ -111,8 +97,8 @@ function create_layout() {
   rm $CUSTOM_ISO_LAYOUT/etc/resolv.conf
 
   echo "==> Set resolvers in the blank VM"
-  echo "nameserver 8.8.8.8" >> $CUSTOM_ISO_LAYOUT/etc/resolv.conf
-  echo "nameserver 8.8.4.4" >> $CUSTOM_ISO_LAYOUT/etc/resolv.conf
+  echo "nameserver 9.9.9.9" >> $CUSTOM_ISO_LAYOUT/etc/resolv.conf
+  echo "nameserver 1.1.1.1" >> $CUSTOM_ISO_LAYOUT/etc/resolv.conf
 
   echo "==> Unmounting $ISO_MOUNT"
   umount $ISO_MOUNT
@@ -126,27 +112,9 @@ function create_newiso() {
   echo "==> Preparing NEW ISO"
   mkisofs -J -R -no-emul-boot \
     -V "$CUSTOM_ISO_TITLE" \
-    -p "Joyent" -b boot/cdboot \
+    -p "Probably" -b boot/cdboot \
     -o $CUSTOM_ISO_FILENAME $CUSTOM_ISO_LAYOUT
   echo "==> Custom ISO now ready: $CUSTOM_ISO_FILENAME"
-}
-
-function integrate_me_freebsd_dstribution() {
-  echo "==> Integrating me-freebsd distribution"
-
-  [[ -f $ME_FREEBSD_DIST_NAME ]] && rm $ME_FREEBSD_DIST_NAME
-
-  ( cd me-freebsd
-    tar -cvJpf ../${ME_FREEBSD_DIST_NAME} ./etc ./lib ./usr
-  )
-
-  DISTFILE_SHASUM_STDOUT=$(shasum -a 256 $ME_FREEBSD_DIST_NAME)
-  DISTFILE_SHASUM_PLAIN=${DISTFILE_SHASUM_STDOUT% *}
-  DISTFILE_FILECOUNT=$(tar -tf $ME_FREEBSD_DIST_NAME | wc -l | tr -d ' ')
-
-  echo -e "${ME_FREEBSD_DIST_NAME}\t${DISTFILE_SHASUM_PLAIN}\t${DISTFILE_FILECOUNT}\t${ME_FREEBSD_DIST_NAME%.*}\t\"Joyent smartmachine tools\"\ton" >> ${CUSTOM_ISO_LAYOUT}/usr/freebsd-dist/MANIFEST
-
-  cp $ME_FREEBSD_DIST_NAME ${CUSTOM_ISO_LAYOUT}/usr/freebsd-dist/${ME_FREEBSD_DIST_NAME}
 }
 
 echo "==> ISO Build Starting!"
