@@ -1,18 +1,17 @@
-# mi-freebsd-10
+# custom-freebsd-13
 
-This repo allows one to create a custom ISO with the necessary packages and
-tooling for deploying on SmartOS and Joyent Public Cloud.
+Create a custom FreeBSD ISO that will install unattended. Based on [mi-freebsd-10](https://github.com/joyent/mi-freebsd-10) by Joyent.
 
 ## Requirements
 
-This must be run on a FreeBSD machine or VirtualMachine.
+This must be run on a FreeBSD host as user root.
 
 ## Setup
 
-Before using mi-freebsd-10, please install the following packages:
+Before using this you need to install the following packages:
 
 ```
-pkg install -y bash rsync cdrtools git
+pkg install -y zsh rsync cdrtools git
 ```
 
 ## Usage
@@ -31,8 +30,8 @@ This will download an ISO, created a customized layout with installerconfig, the
 You can modify the following if you'd prefer a different ISO, architexture, or FreeBSD mirror:
 
 ```
-MIRROR="ftp.freebsd.org"
-MIRROR_PATH="pub/FreeBSD/releases/amd64/amd64/ISO-IMAGES"
-ISO="FreeBSD-10.1-RELEASE-amd64-disc1.iso"
-CUSTOM_ISO_FILENAME="freebsd-10-custom.iso"
+MIRROR="ftp.uk.freebsd.org"
+MIRROR_PATH="pub/FreeBSD/releases/amd64/ISO-IMAGES"
+ISO="FreeBSD-13.0-RELEASE-amd64-disc1.iso"
+CUSTOM_ISO_FILENAME="freebsd-13-custom.iso"
 ```
