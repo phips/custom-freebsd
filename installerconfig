@@ -6,29 +6,28 @@ BSDINSTALL_DISTSITE=ftp://ftp.uk.freebsd.org/pub/FreeBSD/releases/amd64/13.0-REL
 set -o xtrace
 echo "==> Running installerconfig"
 
-# Enable serial and internal consoles
-echo "==> Enabling serial and internal consoles"
-echo "-Dhv" > /boot.config
-echo "cuau0   \"/usr/libexec/getty std.38400\"  xterm   on  secure" >> /etc/ttys
-
 echo "==> Adding boot loader settings"
 cat << BOOT > /boot/loader.conf
 autoboot_delay="5"
-verbose_loading="YES"
 hw.snd.default_auto=0
 hw.usb.disable_enumeration=1
 hw.usb.no_boot_wait=1
 hw.usb.no_shutdown_wait=1
+# zfs
+#kern.geom.label.disk_ident.enable="0"
+#kern.geom.label.gptid.enable="0"
+#opensolaris_load="YES"
+#zfs_load="YES"
 BOOT
 
 echo "==> Setting up rc.conf"
 cat > /etc/rc.conf << RC_CONF
 fsck_y_enable="YES"
+ifconfig_em0=DHCP
 sshd_enable="YES"
 ntpd_enable="YES"
 ntpd_sync_on_start="YES"
-ifconfig_em0=DHCP
-
+sendmail_enable="NO"
 RC_CONF
 
 # Set Time Zone to UTC
@@ -69,8 +68,8 @@ env PAGER=cat freebsd-update -f /tmp/freebsd-update.conf install
 
 echo "==> Installing packages"
 env ASSUME_ALWAYS_YES=yes pkg update -f
-env ASSUME_ALWAYS_YES=yes pkg upgrade -q -y
-env ASSUME_ALWAYS_YES=yes pkg install -q -y curl vim-console zsh
+env ASSUME_ALWAYS_YES=yes pkg upgrade -y
+env ASSUME_ALWAYS_YES=yes pkg install -y curl sudo vim-console zsh
 env ASSUME_ALWAYS_YES=yes pkg autoremove
 env ASSUME_ALWAYS_YES=yes pkg clean -a
 
