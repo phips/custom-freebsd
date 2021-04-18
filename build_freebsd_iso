@@ -8,16 +8,17 @@ fi
 set -euo pipefail
 IFS=$'\n\t'
 
-RELEASE="13.0"
+RELEASE=${RELEASE:-12.2}
 MIRROR="ftp.uk.freebsd.org"
 MIRROR_PATH="pub/FreeBSD/releases/ISO-IMAGES"
+# ISO="FreeBSD-${RELEASE}-RELEASE-amd64-bootonly.iso"
 ISO="FreeBSD-${RELEASE}-RELEASE-amd64-disc1.iso"
 ISO_DIR="data/freebsd-iso"
 ISO_MOUNT="/mnt/freebsd-iso"
 CUSTOM_ISO_LAYOUT="data/custom-freebsd-iso"
 SHA256SUM="CHECKSUM.SHA256-FreeBSD-${RELEASE}-RELEASE-amd64"
 CUSTOM_ISO_FILENAME="freebsd-custom.iso"
-INSTALLER_CFG="installerconfig"
+INSTALLER_CFG=installerconfig.${RELEASE}
 
 # Clean up ISO file if download is interupted
 trap "rm -rf $PWD/${ISO_DIR}/${ISO}" SIGHUP SIGINT SIGKILL SIGTERM
@@ -30,7 +31,7 @@ function fetch_iso() {
   fi
 
   echo "==> Fetching ${SHA256SUM}"
-  curl -#S -o ${ISO_DIR}/${SHA256SUM} ftp://${MIRROR}/${MIRROR_PATH}/${RELEASE}/${SHA256SUM}
+  curl -sS -o ${ISO_DIR}/${SHA256SUM} ftp://${MIRROR}/${MIRROR_PATH}/${RELEASE}/${SHA256SUM}
 
   echo "==> Checking for local copy of $ISO..."
   if [[ -e $ISO_DIR/$ISO ]]; then
@@ -39,7 +40,7 @@ function fetch_iso() {
   else
       echo "==> Local copy not found."
       echo "==> Fetching ISO from $MIRROR..."
-      curl -sS -o ${ISO_DIR}/${ISO} ftp://${MIRROR}/${MIRROR_PATH}/${RELEASE}/${ISO}
+      curl -#S -o ${ISO_DIR}/${ISO} ftp://${MIRROR}/${MIRROR_PATH}/${RELEASE}/${ISO}
       echo "==> Done!"
       echo "==> ${ISO} saved to $ISO_DIR/"
 
@@ -80,7 +81,7 @@ function create_layout() {
   rsync -aq  $ISO_MOUNT/ $CUSTOM_ISO_LAYOUT
 
   echo "==> Copying $INSTALLER_CFG to $CUSTOM_ISO_LAYOUT"
-  cp $INSTALLER_CFG $CUSTOM_ISO_LAYOUT/etc/
+  cp $INSTALLER_CFG $CUSTOM_ISO_LAYOUT/etc/installerconfig
 
   echo "==> Enable serial and internal consoles"
   echo "-Dhv" > $CUSTOM_ISO_LAYOUT/boot.config
@@ -90,8 +91,7 @@ function create_layout() {
   echo "autoboot_delay=\"5\"" >> $CUSTOM_ISO_LAYOUT/boot/loader.conf
 
   echo "==> Get network up automatically in the blank VM"
-  echo "ifconfig_vtnet0=\"DHCP\"" >> $CUSTOM_ISO_LAYOUT/etc/rc.conf
-  echo "ifconfig_vtnet1=\"DHCP\"" >> $CUSTOM_ISO_LAYOUT/etc/rc.conf
+  echo "ifconfig_em0=\"DHCP\"" >> $CUSTOM_ISO_LAYOUT/etc/rc.conf
 
   echo "==> Remove resolv.conf symlink"
   rm $CUSTOM_ISO_LAYOUT/etc/resolv.conf

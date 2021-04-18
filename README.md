@@ -1,4 +1,4 @@
-# custom-freebsd-13
+# Create a custom ISO to install FreeBSD unattended
 
 Create a custom FreeBSD ISO that will install unattended. Based on [mi-freebsd-10](https://github.com/joyent/mi-freebsd-10) by Joyent.
 
@@ -27,9 +27,11 @@ This will download an ISO, created a customized layout with installerconfig, the
 
 
 ## Customizing
-You can modify the following if you'd prefer a different ISO, architexture, or FreeBSD mirror:
+You can modify the following if you'd prefer a different FreeBSD release
+version, ISO, architecture, or FreeBSD mirror. Note installerconfig file is RELEASE dependent.
 
 ```
+RELEASE=12.2
 MIRROR="ftp.uk.freebsd.org"
 MIRROR_PATH="pub/FreeBSD/releases/amd64/ISO-IMAGES"
 ISO="FreeBSD-13.0-RELEASE-amd64-disc1.iso"

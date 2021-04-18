@@ -1,10 +1,12 @@
 PARTITIONS=ada0
 DISTRIBUTIONS="kernel.txz base.txz"
-BSDINSTALL_DISTSITE=ftp://ftp.uk.freebsd.org/pub/FreeBSD/releases/amd64/13.0-RELEASE
+BSDINSTALL_DISTSITE=ftp://ftp.uk.freebsd.org/pub/FreeBSD/releases/amd64/12.2-RELEASE
 
 #!/bin/sh
-set -o xtrace
 echo "==> Running installerconfig"
+
+echo "==> Enabling serial and internal consoles"
+echo "-Dhv" > /boot.config
 
 echo "==> Adding boot loader settings"
 cat << BOOT > /boot/loader.conf
@@ -13,22 +15,32 @@ hw.snd.default_auto=0
 hw.usb.disable_enumeration=1
 hw.usb.no_boot_wait=1
 hw.usb.no_shutdown_wait=1
-# zfs
+BOOT
+
+# zfs - put in loader.conf
 #kern.geom.label.disk_ident.enable="0"
 #kern.geom.label.gptid.enable="0"
 #opensolaris_load="YES"
 #zfs_load="YES"
-BOOT
 
 echo "==> Setting up rc.conf"
 cat > /etc/rc.conf << RC_CONF
 fsck_y_enable="YES"
 ifconfig_em0=DHCP
-sshd_enable="YES"
 ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 sendmail_enable="NO"
+sshd_enable="YES"
+syslogd_flags="-ss"
 RC_CONF
+
+# append to ntp.conf - only listen on loopback
+cat >> /etc/ntp.conf << NTP_CONF
+interface ignore wildcard
+interface listen 127.0.0.1
+NTP_CONF
+
+dhclient em0
 
 # Set Time Zone to UTC
 echo "==> Setting Time Zone to UTC"
@@ -76,10 +88,19 @@ env ASSUME_ALWAYS_YES=yes pkg clean -a
 echo "== Enable root login via ssh"
 sed -i.bak -e s/#PermitRootLogin\ no/PermitRootLogin\ without-password/g /etc/ssh/sshd_config
 
+# Allow SSH access to root with this key (which there is no password on)
+# You should change/remove this key post install.
+mkdir -p /root/.ssh
+chown root:wheel /root/.ssh
+chmod 700 /root/.ssh
+cat <<KEY > /root/.ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOfrHTZo8u4h3QmcwY5kD12aYEp31kA/D9+/MXC+KrXc bootstrap
+KEY
+chmod 600 /root/.ssh/authorized_keys
+
 ## Build date used for motd and product file
 BUILDDATE=$(date +%Y%m%d)
-RELEASE="13.0-RELEASE"
-DOC_URL="https://docs.joyent.com/images/kvm/freebsd"
+RELEASE="12.2-RELEASE"
 
 # Create MOTD
 echo "Creating /etc/motd"
@@ -89,6 +110,9 @@ Probably Custom (FreeBSD $RELEASE $BUILDDATE)
 
 MOTD
 
+# set root pw - YOU SHOULD CHANGE THIS
+echo "this-might-be-long-but-still-change-it" | pw usermod root -h 0
+
 echo "Cleaning up"
 rm -rf /tmp/installscript
 rm -rf /var/db/freebsd-update/*
@@ -97,5 +121,8 @@ rm -rf /boot/kernel/*.symbols
 
 echo "End of installerconfig"
 
-# reboot
-reboot
+# debug
+# sleep 20
+
+# done
+poweroff
