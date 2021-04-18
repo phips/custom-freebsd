@@ -23,7 +23,14 @@ To build a custom ISO, run the `build_freebsd_iso` script:
 ./build_freebsd_iso
 ```
 
-This will download an ISO, created a customized layout with installerconfig, then build the custom ISO.
+This will download an ISO, created a customized layout with installerconfig,
+then build the custom ISO. Defaults 12.2. Try:
+
+```
+RELEASE=13.0 .build_freebsd_iso
+```
+
+for 13.0.
 
 
 ## Customizing
